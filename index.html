@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>烏日區YouBike選址系統</title>
+    <title>台中市烏日區智慧YouBike選址系統</title>
     <style>
       html,
       body {
@@ -49,12 +49,19 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        #queryDiv, #resultDiv {
+      #queryDiv {
         min-width: 300px;
         font-size: 14px;
         padding: 20px;
         backdrop-filter: blur(10px);
-        }
+      }
+
+      #resultDiv {
+        min-width: 320px;
+        max-width: 360px;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
 
         #queryDiv b {
           display: block;
@@ -616,6 +623,99 @@
         margin-bottom: 15px;  /* 確保標題到內容的間距一致 */
       }
 
+      .suggestion-form-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 1000;
+        min-width: 300px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .form-buttons button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #saveBtn {
+        background-color: #e6a61e;
+        color: white;
+      }
+
+      #cancelBtn {
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .suggestion-form-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        min-width: 300px;
+      }
+
+      .action-button {
+        background-color: #e6a61e;
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .action-button:hover {
+        background-color: #d4941b;
+      }
+
+      #editorDiv {
+        padding: 10px;
+        background-color: white;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+
+      .suggestion-tools {
+        margin-bottom: 10px;
+      }
+
     </style>
     </style>
     <!-- Load the Chart.js library -->
@@ -639,14 +739,16 @@
         "esri/widgets/LayerList", 
         "esri/widgets/Legend",
         "esri/symbols/SimpleMarkerSymbol",
-        "esri/symbols/TextSymbol"      
-      ], (WebScene, SceneView, GraphicsLayer, SketchViewModel, Slider, geometryEngine, Graphic, promiseUtils,BasemapGallery,LayerList, Legend,SimpleMarkerSymbol, TextSymbol) => {
+        "esri/symbols/TextSymbol",
+        "esri/widgets/Sketch",
+        "esri/layers/FeatureLayer"    
+      ], (WebScene, SceneView, GraphicsLayer, SketchViewModel, Slider, geometryEngine, Graphic, promiseUtils,BasemapGallery,LayerList, Legend,SimpleMarkerSymbol, TextSymbol, Sketch,FeatureLayer) => {
 
         
         // 建立 WebScene 和 SceneView
         const webscene = new WebScene({
           portalItem: {
-            id: "3c8484f8027c49d4ab97008b92f11ad6" // 替換為你的場景 ID
+            id: "3c8484f8027c49d4ab97008b92f11ad6" // 場景 ID
           }
         });
 
@@ -669,6 +771,157 @@
           view: view,
           container: "legend-container",
         });
+
+        const suggestionLayer = new FeatureLayer({
+          portalItem: {
+            id: "704960452a084d99a3d1a86b5adfd295" // 連接到指定的圖層
+          },
+          geometryType: "point",
+          hasZ: false,
+          renderer: {
+            type: "simple",
+            symbol: {
+              type: "simple-marker",
+              style: "circle",
+              color: "#ff0000",
+              outline: {
+                color: "#ffffff",
+                width: 1
+              },
+              size: 8
+            }
+          }
+        });
+
+        // 添加到地圖中
+        webscene.add(suggestionLayer);
+
+        // 創建一個用於繪圖的 GraphicsLayer
+        const sketchGraphicsLayer = new GraphicsLayer();
+        webscene.add(sketchGraphicsLayer);
+
+        const sketch = new Sketch({
+          view: view,
+          layer: sketchGraphicsLayer,
+          container: "editorDiv",
+          creationMode: "single",
+          defaultCreateOptions: {
+            mode: "hybrid"
+          },
+          availableCreateTools: ["point"],
+          visibleElements: {
+            createTools: {
+              point: true,
+              polyline: false,
+              polygon: false
+            },
+            selectionTools: false,
+            undoRedoMenu: true,
+            settingsMenu: false
+          }
+        });
+
+        // 不需要手動 appendChild，因為已經在創建時指定了容器
+
+        // 監聽創建事件
+        sketch.on("create", (event) => {
+          if (event.state === "complete") {
+            const graphic = event.graphic;
+            try {
+              // 將圖形從臨時層轉移到建議層
+              const point = {
+                type: "point",
+                x: graphic.geometry.x,
+                y: graphic.geometry.y,
+                spatialReference: view.spatialReference
+              };
+              
+              const suggestionGraphic = new Graphic({
+                geometry: point,
+                attributes: {
+                  objectId: Date.now()
+                }
+              });
+
+              showSuggestionForm(suggestionGraphic);
+              sketchGraphicsLayer.remove(graphic); // 移除臨時圖形
+            } catch (error) {
+              console.error("無法創建建議:", error);
+              alert("無法新增建議，請稍後再試");
+            }
+          }
+        });
+
+        // 建立表單視窗
+        function showSuggestionForm(graphic) {
+          const formContainer = document.createElement('div');
+          formContainer.className = 'suggestion-form-container';
+          formContainer.innerHTML = `
+            <div class="suggestion-form">
+              <h3>新增建議站點</h3>
+              <div class="form-group">
+                <label for="position">位置資訊 *</label>
+                <input type="text" id="position" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label for="usertype">使用者族群 *</label>
+                <select id="usertype" class="form-control" required>
+                  <option value="">請選擇使用者族群</option>
+                  <option value="student">學生</option>
+                  <option value="worker">上班族</option>
+                  <option value="resident">一般住戶</option>
+                  <option value="tourist">觀光客</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+              <div class="form-buttons">
+                <button type="button" id="saveBtn" class="esri-button">儲存</button>
+                <button type="button" id="cancelBtn" class="esri-button">取消</button>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(formContainer);
+
+          // 綁定保存按鈕事件
+          document.getElementById('saveBtn').onclick = async () => {
+            try {
+              const position = document.getElementById('position').value;
+              const usertype = document.getElementById('usertype').value;
+              
+              if (!position || !usertype) {
+                alert('請填寫所有必填欄位');
+                return;
+              }
+
+              // 更新圖形屬性
+              graphic.attributes = {
+                position: position,
+                usertype: usertype
+              };
+
+              // 儲存到圖層
+              await suggestionLayer.applyEdits({
+                addFeatures: [graphic]
+              });
+
+              alert('建議已成功儲存！');
+              formContainer.remove();
+            } catch (error) {
+              console.error('保存失敗:', error);
+              alert('保存失敗，請稍後再試');
+            }
+          };
+
+          // 綁定取消按鈕事件
+          document.getElementById('cancelBtn').onclick = () => {
+            formContainer.remove();
+            // 清除臨時圖形
+            if (graphic) {
+              sketchGraphicsLayer.remove(graphic);
+            }
+          };
+        }
 
         // google street
         let panorama = null;
@@ -770,6 +1023,10 @@
           } else {
             console.error("Google Maps API 未載入");
           }
+          document.getElementById("addPoint").addEventListener("click", () => {
+            sketch.create("point");
+          });
+          
         });
 
         // Define the density categories with clearer labels
@@ -1870,7 +2127,13 @@
             tabContents.forEach(tab => tab.style.display = "none");
 
             // Determine which tab to display based on the button clicked
-            const targetTab = document.getElementById(button.textContent === "底圖切換" ? "basemap-tab" : button.textContent === "圖層控制" ? "layerlist-tab" : "legend-tab");
+            const targetTab = document.getElementById(
+              button.textContent === "底圖切換" ? "basemap-tab" : 
+              button.textContent === "圖層控制" ? "layerlist-tab" : 
+              button.textContent === "地圖圖例" ? "legend-tab" : 
+              button.textContent === "民眾建議" ? "suggestion-tab" : 
+              "basemap-tab"
+            );
             targetTab.style.display = "block";
 
             // Remove 'active' class from all buttons
@@ -1890,7 +2153,7 @@
       <div class="navbar-brand">
         <a href="#" class="navbar-title">
           <span class="title-icon">🚲</span>
-          烏日區YouBike選址系統
+          台中市烏日區智慧YouBike選址系統
         </a>
       </div>
       <div class="district-selector">
@@ -1910,23 +2173,39 @@
       </div>
       <div id="rightPanel">
         <div id="tabContainer">
-          <button class="tabButton">底圖切換</button>
+          <button class="tabButton">地圖圖例</button>
           <button class="tabButton">圖層控制</button>
-          <button class="tabButton">圖例</button>
+          <button class="tabButton">底圖切換</button>       
+          <button class="tabButton">民眾建議</button>
         </div>
         <div id="widgets-container">
+
+          <div id="legend-tab" class="tabContent" style="display: none;">
+            <div id="legend-container"></div>
+          </div>
+
+          <div id="layerlist-tab" class="tabContent" style="display: none;">
+            <div id="layerlist-container"></div>
+          </div>
 
           <div id="basemap-tab" class="tabContent" style="display: block;">
             <div id="basemap-gallery-container"></div>
           </div>
           
-          <div id="layerlist-tab" class="tabContent" style="display: none;">
-            <div id="layerlist-container"></div>
+          <div id="suggestion-tab" class="tabContent" style="display: none;">
+            <div id="suggestion-container" class="widget-container">
+              <div class="suggestion-content">
+                <div class="suggestion-tools">
+                  <button id="addPoint" class="action-button">
+                    <i class="esri-icon-map-pin"></i> 新增建議點 
+                  </button>
+                </div>
+                <div id="editorDiv"></div>  <!-- 這個 div 必須存在 -->
+              </div>
+            </div>
           </div>
-          
-          <div id="legend-tab" class="tabContent" style="display: none;">
-            <div id="legend-container"></div>
-          </div>
+        </div>
+
         </div>
       </div>
     </div>
