@@ -1,0 +1,2597 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>台中市烏日區智慧YouBike選址系統</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+      #mainContainer {
+        position: fixed;
+        top: 50px; /* Match navbar height */
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        overflow: hidden;
+      }
+      #viewDiv {
+        flex: 1;
+        height: 100%;
+      }
+      #rightPanel {
+        width: 300px;
+        height: 100%;
+        background-color: #ffffff;
+        box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .widget-container {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #ffffff;
+        background-color: #ffffff;
+        border-radius: 5px;
+      }
+
+      .esri-widget {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+      #queryDiv {
+        min-width: 300px;
+        font-size: 14px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      #resultDiv {
+        min-width: 320px;
+        max-width: 360px;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+      }
+
+        #queryDiv b {
+          display: block;
+          font-size: 15px;  /* 放大字體 */
+          margin-bottom: 3px;
+          text-align: center;  /* 置中 */
+          padding: 2px 0;
+          color: #333;
+          font-weight: 600;
+        }
+
+        #queryDiv br {
+          display: none;  /* 移除換行 */
+        }
+
+        #resultDiv {
+          min-width: 320px;
+          max-width: 360px;
+          background-color: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+        }
+
+        .geometry-options {
+        display: flex;
+        gap: 3px;
+        margin: 3px 0;
+        }
+        .geometry-button {
+          flex: 1;
+          padding: 6px;
+          border-radius: 4px;
+          background-color: #ffffff;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s ease;
+        }
+
+        .geometry-button:hover {
+          background-color: #fff9c4;
+          border-color: #e6a61e;
+        }
+
+        .geometry-button:active {
+          background-color: #e6a61e;
+        }
+
+        #queryDiv .esri-button,
+        button#clearGeometry.esri-button {
+          width: 100%;
+          padding: 10px;
+          background-color: #e6a61e !important; /* 使用 !important 來確保覆蓋 */
+          color: #333 !important;
+          border: none !important;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          margin-top: 8px;
+        }
+
+
+        #queryDiv .esri-button:hover,
+        button#clearGeometry.esri-button:hover {
+          background-color: #e6a61e !important;
+        }
+
+        #queryDiv .esri-button:active,
+        button#clearGeometry.esri-button:active {
+          background-color: #e6a61e !important;
+        }
+
+        .count {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 15px 0;
+        }
+
+        .count div {
+            margin-bottom: 5px;
+            padding: 5px 0;
+        }
+
+        .count div:last-child {
+        border-bottom: none;
+        }
+        
+        #populationDensity {
+          margin-bottom: 15px;  /* 從 20px 改為 15px，與大眾運輸分析一致 */
+        }
+
+        #densityChart, 
+        #stopDensityChart {
+          height: 80px !important;
+          max-height: 80px;
+          margin-bottom: 15px;  /* 統一圖表底部間距 */
+        }
+
+        #landuse-chart {
+            width: 260px !important;
+            height: 260px !important;
+            padding: 10px;
+        }
+
+        /* Tab Styling */
+        #tabContainer {
+          padding: 10px;
+          background-color: #f8f9fa;
+          border-bottom: 1px solid #e9ecef;
+          display: flex;
+          gap: 8px;
+        }
+
+        .tabButton {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tabButton:hover {
+          background-color: rgba(0,0,0,0.05);
+        }
+
+        .tabButton.active {
+          background-color: #e6a61e;
+          color: white;
+        }
+
+        .tabContent {
+        padding: 20px;
+        background-color: white;
+        border-radius: 0 0 8px 8px;
+        }
+
+        /* Tooltip styling */
+        .tooltip {
+          margin: 6px 0;
+        }
+
+        .tooltip label {
+          display: block;
+          margin-bottom: 15px;  /* 增加標籤和滑桿之間的間距 */
+          font-weight: 500;
+          color: #333;
+        }
+
+        .esri-slider {
+          padding: 12px 0;
+        }
+
+        .esri-slider__content {
+          margin: 0 10px;
+        }
+
+        .esri-slider__thumb {
+          background-color: #e6a61e !important;
+          border-color: #e6a61e !important;
+        }
+
+        .esri-slider__segment-1 {
+          background-color: #e0e0e0 !important;
+        }
+
+        .esri-slider__segment-2 {
+          background-color: #e6a61e !important;  /* 未走過的部分改為黃色 */
+        }
+
+        .esri-slider__tick-label {
+          color: #666;
+        }
+
+        #bufferNum {
+          margin-top: 8px;
+        }
+
+        .charts {
+          display: flex;
+          justify-content: center;
+        }
+
+        .result-section {
+          padding: 15px;
+        }
+
+        .section-header {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          padding: 10px 0;
+          margin-top: 15px;
+          border-bottom: 2px solid #e6a61e;
+        }
+
+        .analysis-section {
+          margin: 15px 0;
+          padding: 10px;
+          background-color: #f8f9fa;
+          border-radius: 6px;
+        }
+
+        .count-grid {
+          display: grid;
+          gap: 10px;
+          padding: 10px;
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .count-item {
+          background-color: #fff;
+          padding: 15px;
+          border-radius: 6px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .count .count-grid .count-item .count-label {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 8px;
+          padding-left: 14px;
+        }
+
+        .count .count-grid .count-item .count-value {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+          text-align: right;
+          padding-right: 14px;
+        }
+
+        .count-grid .count-item span {
+          display: block;
+          text-align: right;
+        }
+
+        .count-grid .count-item:nth-child(3) span {
+          text-align: right;
+          width: 100%;
+        }
+        
+        .count-grid .count-item:nth-child(3),  /* Ubike站數 */
+        .section-header + .count .count-grid .count-item /* 建物數目 */ {
+          grid-column: 1 / -1;  /* 從第一列跨到最後一列 */
+          width: 100%;
+        }
+
+        .results-container {
+          max-height: calc(100vh - 100px);
+          overflow-y: auto;
+          padding-right: 10px;
+          padding-bottom: 80px;
+        }
+
+        .results-container::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .results-container::-webkit-scrollbar-track {
+          background: #ffffff;
+          border-radius: 3px;
+        }
+
+        .results-container::-webkit-scrollbar-thumb {
+          background: #aaadb1;
+          border-radius: 3px;
+        }
+
+        .analysis-item .value {
+          color: #333;
+          font-weight: 600;
+          font-size: 15px;
+          text-align: right;
+          min-width: 120px;
+        }
+
+        .assessment-value {
+          color: #333;
+          font-weight: 600;
+          font-size: 15px;
+          text-align: right;
+          min-width: 120px;
+        }
+
+        .analysis-item .label {
+          flex: 1;
+          padding-right: 10px;
+          color: #666;
+          font-size: 14px;
+        }
+
+        .assessment-label {
+          flex: 1;
+          padding-right: 10px;
+          color: #666;
+          font-size: 14px;
+        }
+
+        /* 確保間距一致 */
+        .analysis-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          margin-bottom: 8px;
+          background-color: #ffffff;
+          border-radius: 6px;
+          transition: background-color 0.2s ease;
+        }
+
+        .assessment-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          margin-bottom: 8px;
+          background-color: #ffffff;  /* 加入白色背景 */
+          border-radius: 6px;        /* 加入圓角 */
+          transition: background-color 0.2s ease;
+        }
+
+
+        /* 統一背景和邊框 */
+        .population-section {
+          margin: 0;
+          line-height: 1.6;
+          background-color: #f8f9fa;
+          padding: 7px;     
+          border-radius: 6px;
+          margin-bottom: 15px;
+        }
+
+        /* 保持大眾運輸分析區塊原有的內邊界 */
+        .transport-section {
+          margin: 0;
+          line-height: 1.6;
+          background-color: #f8f9fa;
+          padding: 15px;
+          border-radius: 6px;
+          margin-bottom: 15px;
+        }
+
+        .analysis-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .analysis-item:hover {
+          background-color: #f8f9fa;
+        }
+
+        .assessment-grid {
+          display: grid;
+          gap: 10px;
+          padding: 10px;
+        }
+
+        /* Add highlight for accident spots */
+        .assessment-value.has-accidents {
+          color: #dc3545;
+        }
+
+        .navbar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 50px;
+          background-color: #e6a61e;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          padding: 0 20px;
+        }
+
+        .navbar-brand {
+          display: flex;
+          align-items: center;
+        }
+
+        .navbar-title {
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 20px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          padding: 8px 16px;
+          border-radius: 8px;
+          transition: background-color 0.2s ease;
+        }
+
+        .navbar-title:hover {
+          background-color: #f5f5f5;
+        }
+
+        .title-icon {
+          margin-right: 8px;
+          font-size: 24px;
+        }
+        #widgets-container {
+          flex: 1;
+          overflow-y: auto;
+          padding: 10px;
+        }
+
+        .district-selector {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+        margin-right: 20px;
+      }
+
+      .district-dropdown {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ffffff;
+        background-color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        min-width: 200px;
+      }
+
+      .sort-button {
+        margin-left: 8px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.9);
+        cursor: pointer;
+      }
+
+      .sort-button:hover {
+        background-color: #e6a61e;
+        color: white;
+      }
+
+      .streetview-toggle {
+        position: absolute;
+        bottom: 280px;  /* 調高位置 */
+        left: 20px;
+        z-index: 1000;
+        padding: 8px 16px;
+        background-color: #e6a61e;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+
+      #streetViewDiv {
+        position: absolute;
+        bottom: 70px;  /* 調高位置 */
+        left: 20px;
+        width: 300px;
+        height: 200px;
+        z-index: 1000;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: none;
+      }
+
+      .streetview-toggle:hover {
+        background-color: #d4941b;
+      }
+
+      .close-streetview {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 5px;
+        background: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        z-index: 1001;
+      }
+      /* 評估結果樣式 */
+      .evaluation-summary {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 15px 0;
+      }
+
+      .total-score {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .recommendation {
+        text-align: center;
+        margin: 10px 0;
+      }
+
+      .recommendation-high {
+        color: #28a745;
+        font-weight: bold;
+      }
+
+      .recommendation-medium {
+        color: #ffc107;
+        font-weight: bold;
+      }
+
+      .recommendation-low {
+        color: #dc3545;
+        font-weight: bold;
+      }
+
+      .score-details {
+        margin-top: 15px;
+      }
+
+      .score-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .score-label {
+        color: #666;
+      }
+
+      .score-value {
+        font-weight: bold;
+        color: #333;
+      }
+
+      .evaluation-section {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+      }
+
+      .score-item:last-child {
+        border-bottom: none;
+      }
+
+      .result-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #ffffff;
+        text-align: center;
+        padding: 15px 0;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #e6a61e;
+        background-color: #e6a61e;
+        border-radius: 6px 6px 0 0;
+      }
+      .section-header {
+        margin-bottom: 15px;  /* 確保標題到內容的間距一致 */
+      }
+
+      .suggestion-form-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 1000;
+        min-width: 300px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .form-buttons button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #saveBtn {
+        background-color: #e6a61e;
+        color: white;
+      }
+
+      #cancelBtn {
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .suggestion-form-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        min-width: 300px;
+      }
+
+      .action-button {
+        background-color: #e6a61e;
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .action-button:hover {
+        background-color: #d4941b;
+      }
+
+      #editorDiv {
+        padding: 10px;
+        background-color: white;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+
+      .suggestion-tools {
+        margin-bottom: 10px;
+      }
+
+        /* YouBike 即時資料樣式 */
+      .loading-message, .error-message, .no-data {
+        padding: 20px;
+        text-align: center;
+        color: #666;
+      }
+      
+      .error-message {
+        color: #dc3545;
+      }
+      
+      .youbike-controls {
+        margin-bottom: 15px;
+      }
+      
+      #youbikeStationList {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 10px;
+      }
+      
+      #youbikeStationList .analysis-item {
+        transition: all 0.2s ease;
+      }
+      
+      #youbikeStationList .analysis-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        cursor: pointer;
+      }
+      /* YouBike 地圖整合樣式 */
+      .youbike-layer-toggle {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+      }
+
+      input:checked + .slider {
+        background-color: #e6a61e;
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
+      .slider.round {
+        border-radius: 34px;
+      }
+
+      .slider.round:before {
+        border-radius: 50%;
+      }
+
+      .youbike-legend {
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .legend-color {
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 8px;
+        border-radius: 50%;
+      }
+
+      #youbikeStationList .analysis-item:hover {
+        background-color: #f5f5f5;
+        cursor: pointer;
+      }
+
+      /* 分析結果樣式 */
+      .nearest-stations .analysis-item {
+        border-left: 3px solid #e6a61e;
+        transition: all 0.2s ease;
+      }
+
+      .nearest-stations .analysis-item:hover {
+        transform: translateX(5px);
+        background-color: #f8f9fa;
+      }
+
+      .coverage-analysis {
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 15px;
+      }
+
+      .coverage-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .coverage-info-item {
+        text-align: center;
+        flex: 1;
+      }
+
+      .coverage-info-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #e6a61e;
+      }
+
+      .coverage-info-label {
+        font-size: 12px;
+        color: #666;
+      }
+
+      .opportunity-indicator {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: bold;
+        color: white;
+      }
+
+      .opportunity-high {
+        background-color: #28a745;
+      }
+
+      .opportunity-medium {
+        background-color: #ffc107;
+      }
+
+      .opportunity-low {
+        background-color: #dc3545;
+      }
+
+      .youbike-analysis-options {
+        margin-top: 10px;
+      }
+
+      .youbike-analysis-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #e6a61e !important;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-top: 8px;
+      }
+
+      .youbike-analysis-button:hover {
+        background-color: #d4941b !important;
+      }
+
+      /* 新增的樣式，用於 YouBike 站點分析區段 */
+      #youbikeQuerySection {
+        margin-top: 20px;
+        border-top: 1px solid #ccc;
+        padding-top: 15px;
+      }
+
+      #youbikeAnalysisResults h4 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 16px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 8px;
+      }
+
+      #youbikeAnalysisType {
+        appearance: none;
+        background-color: white;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23333' d='M0 0l4 4 4-4H0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.7rem center;
+        background-size: 8px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 10px;
+        padding-right: 24px;
+        width: 100%;
+        font-size: 14px;
+      }
+
+      /* 標記按鈕樣式 */
+      #markPointForAnalysis {
+        width: 100%;
+        padding: 10px;
+        background-color: #e6a61e !important;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+
+      #markPointForAnalysis:hover {
+        background-color: #d4941b !important;
+      }
+
+      /* 提示消息樣式 */
+      #youbike-tooltip {
+        position: absolute;
+        top: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 4px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      /* 分析結果在即時車位頁籤中的樣式 */
+      .youbike-analysis-results {
+        margin-top: 20px;
+        border-top: 1px solid #ddd;
+        padding-top: 15px;
+      }
+
+      /* 按鈕容器樣式 */
+      .youbike-buttons-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+    </style>
+    </style>
+    <!-- Load the Chart.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCLkOmiAwwSOx1dQPSs0nQX0tPPXbnc_Vg"></script>
+    <script src="https://js.arcgis.com/4.31/"></script>
+    <script>
+      // 創建全局變數，確保它存在
+      if (typeof window.youbikeAnalysisVars === 'undefined') {
+        window.youbikeAnalysisVars = {
+          activeAnalysisLayer: null,
+          serviceRadius: 300,
+          lastQueryGeometry: null,
+          markerLayer: null,
+          isMarkingPoint: false
+        };
+      }
+      </script>
+    <script src="youbike-integration.js"></script>
+    <script src="youbike-marker.js"></script>
+    <script src="youbike-ui-improvements.js"></script>
+    <script src="edit.js"></script>
+
+    <script>
+      require([
+        "esri/WebScene",
+        "esri/views/SceneView",
+        "esri/layers/GraphicsLayer",
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/widgets/Slider",
+        "esri/geometry/geometryEngine",
+        "esri/Graphic",
+        "esri/core/promiseUtils",
+        "esri/widgets/BasemapGallery",
+        "esri/widgets/LayerList", 
+        "esri/widgets/Legend",
+        "esri/symbols/SimpleMarkerSymbol",
+        "esri/symbols/TextSymbol",
+        "esri/widgets/Sketch",
+        "esri/layers/FeatureLayer"    
+      ], (WebScene, SceneView, GraphicsLayer, SketchViewModel, Slider, geometryEngine, Graphic, promiseUtils,BasemapGallery,LayerList, Legend,SimpleMarkerSymbol, TextSymbol, Sketch,FeatureLayer) => {
+
+        
+        // 建立 WebScene 和 SceneView
+        const webscene = new WebScene({
+          portalItem: {
+            id: "3c8484f8027c49d4ab97008b92f11ad6" // 場景 ID
+          }
+        });
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: webscene
+        });
+         
+        const basemapGallery = new BasemapGallery({
+          view: view,
+          container: "basemap-gallery-container",
+        });
+
+        const layerList = new LayerList({
+          view: view,
+          container: "layerlist-container",
+        });
+
+        const legend = new Legend({
+          view: view,
+          container: "legend-container",
+        });
+
+        const suggestionLayer = new FeatureLayer({
+          portalItem: {
+            id: "704960452a084d99a3d1a86b5adfd295" // 連接到指定的圖層
+          },
+          geometryType: "point",
+          hasZ: false,
+          renderer: {
+            type: "simple",
+            symbol: {
+              type: "simple-marker",
+              style: "circle",
+              color: "#ff0000",
+              outline: {
+                color: "#ffffff",
+                width: 1
+              },
+              size: 8
+            }
+          }
+        });
+
+        // 添加到地圖中
+        webscene.add(suggestionLayer);
+
+        // 創建一個用於繪圖的 GraphicsLayer
+        const sketchGraphicsLayer = new GraphicsLayer();
+        webscene.add(sketchGraphicsLayer);
+
+        const sketch = new Sketch({
+          view: view,
+          layer: sketchGraphicsLayer,
+          container: "editorDiv",
+          creationMode: "single",
+          defaultCreateOptions: {
+            mode: "hybrid"
+          },
+          availableCreateTools: ["point"],
+          visibleElements: {
+            createTools: {
+              point: true,
+              polyline: false,
+              polygon: false
+            },
+            selectionTools: false,
+            undoRedoMenu: true,
+            settingsMenu: false
+          }
+        });
+
+        // 不需要手動 appendChild，因為已經在創建時指定了容器
+
+        // 監聽創建事件
+        sketch.on("create", (event) => {
+          if (event.state === "complete") {
+            const graphic = event.graphic;
+            try {
+              // 將圖形從臨時層轉移到建議層
+              const point = {
+                type: "point",
+                x: graphic.geometry.x,
+                y: graphic.geometry.y,
+                spatialReference: view.spatialReference
+              };
+              
+              const suggestionGraphic = new Graphic({
+                geometry: point,
+                attributes: {
+                  objectId: Date.now()
+                }
+              });
+
+              showSuggestionForm(suggestionGraphic);
+              sketchGraphicsLayer.remove(graphic); // 移除臨時圖形
+            } catch (error) {
+              console.error("無法創建建議:", error);
+              alert("無法新增建議，請稍後再試");
+            }
+          }
+        });
+
+        // 建立表單視窗
+        function showSuggestionForm(graphic) {
+          const formContainer = document.createElement('div');
+          formContainer.className = 'suggestion-form-container';
+          formContainer.innerHTML = `
+            <div class="suggestion-form">
+              <h3>新增建議站點</h3>
+              <div class="form-group">
+                <label for="position">位置資訊 *</label>
+                <input type="text" id="position" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label for="usertype">使用者族群 *</label>
+                <select id="usertype" class="form-control" required>
+                  <option value="">請選擇使用者族群</option>
+                  <option value="student">學生</option>
+                  <option value="worker">上班族</option>
+                  <option value="resident">一般住戶</option>
+                  <option value="tourist">觀光客</option>
+                  <option value="other">其他</option>
+                </select>
+              </div>
+              <div class="form-buttons">
+                <button type="button" id="saveBtn" class="esri-button">儲存</button>
+                <button type="button" id="cancelBtn" class="esri-button">取消</button>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(formContainer);
+
+          // 綁定保存按鈕事件
+          document.getElementById('saveBtn').onclick = async () => {
+            try {
+              const position = document.getElementById('position').value;
+              const usertype = document.getElementById('usertype').value;
+              
+              if (!position || !usertype) {
+                alert('請填寫所有必填欄位');
+                return;
+              }
+
+              // 更新圖形屬性
+              graphic.attributes = {
+                position: position,
+                usertype: usertype
+              };
+
+              // 儲存到圖層
+              await suggestionLayer.applyEdits({
+                addFeatures: [graphic]
+              });
+
+              alert('建議已成功儲存！');
+              formContainer.remove();
+            } catch (error) {
+              console.error('保存失敗:', error);
+              alert('保存失敗，請稍後再試');
+            }
+          };
+
+          // 綁定取消按鈕事件
+          document.getElementById('cancelBtn').onclick = () => {
+            formContainer.remove();
+            // 清除臨時圖形
+            if (graphic) {
+              sketchGraphicsLayer.remove(graphic);
+            }
+          };
+        }
+
+        // google street
+        let panorama = null;
+        let isStreetViewVisible = false;
+        let streetViewService = null;
+
+        // 初始化街景
+        function initStreetView() {
+          try {
+            // 初始化服務
+            streetViewService = new google.maps.StreetViewService();
+            
+            // 初始化全景
+            panorama = new google.maps.StreetViewPanorama(
+              document.getElementById('streetViewDiv'),
+              {
+                position: { lat: 24.1057, lng: 120.5999 }, // 烏日區中心點
+                pov: { heading: 0, pitch: 0 },
+                zoom: 1,
+                addressControl: true,
+                linksControl: true,
+                panControl: true,
+                enableCloseButton: false,
+                zoomControl: false,
+                fullscreenControl: false
+              }
+            );
+
+            // 設置街景改變事件監聽器
+            panorama.addListener('position_changed', () => {
+              const pos = panorama.getPosition();
+              console.log('街景位置更新為:', pos.lat(), pos.lng());
+            });
+
+          } catch (error) {
+            console.error("初始化街景時出錯:", error);
+          }
+        }
+
+        // 切換街景顯示/隱藏
+        window.toggleStreetView = function() {
+          const streetViewDiv = document.getElementById("streetViewDiv");
+          isStreetViewVisible = !isStreetViewVisible;
+          streetViewDiv.style.display = isStreetViewVisible ? "block" : "none";
+          
+          if (isStreetViewVisible && !panorama) {
+            initStreetView();
+          }
+        }
+
+        // 點擊地圖更新街景位置
+        view.on("click", async (event) => {
+          if (!isStreetViewVisible || !panorama || !streetViewService) return;
+
+          try {
+            const point = view.toMap(event);
+            if (!point) return;
+
+            const latitude = point.latitude;
+            const longitude = point.longitude;
+
+            // 尋找最近的街景
+            const response = await streetViewService.getPanorama({
+              location: { lat: latitude, lng: longitude },
+              radius: 100,
+              source: google.maps.StreetViewSource.DEFAULT
+            });
+
+            if (response && response.data && response.data.location) {
+              const position = response.data.location.latLng;
+              panorama.setPosition(position);
+              
+              // 計算朝向點擊位置的角度
+              const heading = google.maps.geometry.spherical.computeHeading(
+                position,
+                new google.maps.LatLng(latitude, longitude)
+              );
+              
+              // 設置視角
+              panorama.setPov({
+                heading: heading,
+                pitch: 0
+              });
+              
+              console.log('已更新街景位置:', position.lat(), position.lng());
+            }
+          } catch (error) {
+            console.log("無法在該位置找到街景:", error);
+            alert("無法在此位置找到街景，請嘗試其他位置");
+          }
+        });
+
+        // 在地圖載入完成后初始化街景服務
+        view.when(() => {
+          if (google && google.maps) {
+            console.log("Google Maps API 已載入");
+            // 添加事件監聽器
+            document.getElementById("toggleStreetView").addEventListener("click", toggleStreetView);
+          } else {
+            console.error("Google Maps API 未載入");
+          }
+          document.getElementById("addPoint").addEventListener("click", () => {
+            sketch.create("point");
+          });
+          
+        });
+
+        // Define the density categories with clearer labels
+        const densityCategories = [
+          "第一級 (低密度區域)",
+          "第二級 (郊區密度)",
+          "第三級 (一般住宅區)",
+          "第四級 (較高密度區)",
+          "第五級 (高密度區)"
+        ];
+
+        const densityRanges = [
+          "0 - 1,000",
+          "1,000 - 5,000",
+          "5,000 - 10,000",
+          "10,000 - 20,000",
+          "20,000+"
+        ];
+
+        // Add this function to classify density into categories (1-5)
+        function classifyDensity(density) {
+          const densityPerKm2 = density * 1000000;
+          
+          if (densityPerKm2 <= 1000) return 1;
+          if (densityPerKm2 <= 5000) return 2;
+          if (densityPerKm2 <= 10000) return 3;
+          if (densityPerKm2 <= 20000) return 4;
+          return 5;
+        }
+
+        let densityChart = null;
+        
+        // Create the density chart showing just the current category
+        function createDensityChart() {
+          const ctx = document.getElementById("densityChart");
+          if (!ctx) {
+            console.error("Density chart canvas not found");
+            return null;
+          }
+
+          return new Chart(ctx, {
+            type: "horizontalBar",
+            data: {
+              datasets: [{
+                data: [0],
+                backgroundColor: ['rgba(75, 192, 192, 0.6)'],
+                borderColor: ['rgba(75, 192, 192, 1)'],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                xAxes: [{
+                  ticks: {
+                    beginAtZero: true,
+                    max: 5,
+                    stepSize: 1,
+                    callback: function(value) {
+                      if (value === 0) return '';
+                      return `第${value}級`;
+                    }
+                  }
+                }],
+                yAxes: [{
+                  gridLines: {
+                    display: false
+                  },
+                  barThickness: 40
+                }]
+              },
+              legend: {
+                display: false
+              },
+              title: {
+                display: true,
+                text: '人口密度分級',
+                fontSize: 16,
+                padding: 20
+              },
+              tooltips: {
+                callbacks: {
+                  label: function(tooltipItem) {
+                    const category = Math.round(tooltipItem.value);
+                    if (category >= 1 && category <= 5) {
+                      return `${densityCategories[category - 1]}\n範圍: ${densityRanges[category - 1]} 人/平方公尺`;
+                    }
+                    return '';
+                  }
+                }
+              }
+            }
+          });
+        }
+
+
+        // Add these variables at the beginning of your require callback function
+        const stopDensityCategories = [
+          "第一級 (不足)",
+          "第二級 (稍不足)", 
+          "第三級 (中等)",
+          "第四級 (充足)",
+          "第五級 (高密度)"
+        ];
+
+        // Add this function to classify stop density into categories (1-5)
+        function classifyStopDensity(density) {
+          if (density <= 16) return 1;  // 不足
+          if (density <= 32) return 2;  // 稍不足
+          if (density <= 64) return 3;  // 中等
+          if (density <= 128) return 4; // 充足
+          return 5;                     // 高密度
+        }
+
+        // Update the createStopDensityChart function
+        function createStopDensityChart() {
+          const ctx = document.getElementById("stopDensityChart");
+          if (!ctx) {
+            console.error("Stop density chart canvas not found");
+            return null;
+          }
+
+          return new Chart(ctx, {
+            type: "horizontalBar",
+            data: {
+              datasets: [{
+                data: [0],
+                backgroundColor: ['rgba(255, 99, 132, 0.6)'],
+                borderColor: ['rgba(255, 99, 132, 1)'],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                xAxes: [{
+                  ticks: {
+                    beginAtZero: true,
+                    max: 5,
+                    stepSize: 1,
+                    callback: function(value) {
+                      if (value === 0) return '';
+                      return `第${value}級`;
+                    }
+                  }
+                }],
+                yAxes: [{
+                  gridLines: {
+                    display: false
+                  },
+                  barThickness: 40
+                }]
+              },
+              legend: {
+                display: false
+              },
+              title: {
+                display: true,
+                text: '站牌數密度分級',
+                fontSize: 16,
+                padding: 20
+              },
+              tooltips: {
+                callbacks: {
+                  label: function(tooltipItem) {
+                    const category = Math.round(tooltipItem.value);
+                    if (category >= 1 && category <= 5) {
+                      return `${stopDensityCategories[category - 1]}\n範圍: ${getStopDensityRange(category)}`;
+                    }
+                    return '';
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Add helper function to get density range text
+        function getStopDensityRange(category) {
+          switch(category) {
+            case 1: return "0-16 站/平方公里";
+            case 2: return "16-32 站/平方公里";
+            case 3: return "32-64 站/平方公里";
+            case 4: return "64-128 站/平方公里";
+            case 5: return "128+ 站/平方公里";
+            default: return "";
+          }
+        }
+
+        // Update the chart to show the current density category
+        function updateDensityChart(category) {
+          if (!densityChart) {
+            densityChart = createDensityChart();
+          }
+          densityChart.data.datasets[0].data = [category];
+          densityChart.update();
+        }
+
+
+        // 更新站数密度图表的函数
+        let stopDensityChart = null;
+        function updateStopDensityChart(category) {
+          if (!stopDensityChart) {
+            stopDensityChart = createStopDensityChart();
+          }
+          stopDensityChart.data.datasets[0].data = [category];
+          stopDensityChart.update();
+        }       
+
+        let busLayer = null;
+        let bikeLayer = null;
+        let intercitybusLayer = null;
+        let schoolLayer = null;
+        let accidentLayer = null;
+        let hydrantLayer = null;
+
+        window.view = view;
+        // add a GraphicsLayer for the sketches and the buffer
+        const sketchLayer = new GraphicsLayer();
+        const bufferLayer = new GraphicsLayer();
+        view.map.addMany([bufferLayer, sketchLayer]);
+
+        let sceneLayer = null;
+        let sceneLayerView = null;
+        let bufferSize = 0;
+
+        //選單
+        let currentData = [];
+        let isAscending = true;
+
+        function populateDistrictSelect(data) {
+          const districtSelect = document.getElementById("districtSelect");
+          while (districtSelect.options.length > 1) {
+            districtSelect.remove(1);
+          }
+          
+          data.forEach(district => {
+            const option = document.createElement("option");
+            option.value = district.name;
+            const growthRateFormatted = district.growthRate.toFixed(2);
+            option.textContent = `${district.name} (${growthRateFormatted}%)`;
+            districtSelect.appendChild(option);
+          });
+        }
+
+        function sortDistricts() {
+          isAscending = !isAscending;
+          currentData.sort((a, b) => {
+            return isAscending ? a.growthRate - b.growthRate : b.growthRate - a.growthRate;
+          });
+          populateDistrictSelect(currentData);
+        }
+
+        function zoomToDistrict(districtName, layer, view) {
+          if (!districtName) return;
+          
+          const query = layer.createQuery();
+          query.where = `里名 = '${districtName}'`;
+          query.returnGeometry = true;
+          query.outSpatialReference = view.spatialReference;
+
+          layer.queryFeatures(query).then(result => {
+            if (result.features.length > 0) {
+              const geometry = result.features[0].geometry;
+              view.goTo({
+                target: geometry.extent.expand(1.2),
+                tilt: 45
+              }, {
+                duration: 1000
+              });
+            }
+          });
+        }
+
+        webscene.load().then(() => {
+          sceneLayer = webscene.layers.find((layer) => {
+            return layer.title === "烏日建物_20M_dem";
+          });
+          sceneLayer.outFields = ["使用分"];
+
+          busLayer = webscene.layers.find(layer => layer.title === "烏日公車站牌");
+          intercitybusLayer = webscene.layers.find(layer => layer.title === "烏日公路客運站牌");
+          bikeLayer = webscene.layers.find(layer => layer.title === "烏日自行車租借站");
+          populationLayer = webscene.layers.find(layer => layer.title === "烏日最小人口統計及密度_112");
+          schoolLayer = webscene.layers.find(layer => layer.title === "學校");
+          accidentLayer = webscene.layers.find(layer => layer.title === "烏日_111_113易肇事路口_300m");
+          if (populationLayer) {
+            populationLayer.outFields = ["P_CNT"]; // Set the "P_CNT" field
+          }
+
+          if (schoolLayer && accidentLayer) {
+              schoolLayer.outFields = ["*"];
+              accidentLayer.outFields = ["*"];
+            }
+
+          // Set up layerView for scene layer
+          view.whenLayerView(sceneLayer).then((layerView) => {
+            sceneLayerView = layerView;
+            queryDiv.style.display = "block";
+          });
+
+          if (busLayer && bikeLayer && intercitybusLayer) {
+            busLayer.outFields = ["StopName"];
+            bikeLayer.outFields = ["StationNam"];
+            intercitybusLayer.outFields = ["StopName"];
+          }
+
+          const populationvillageLayer = webscene.layers.find(layer => 
+            layer.title === "烏日區人口及里界圖"
+          );
+
+          if (populationvillageLayer) {
+            const query = populationvillageLayer.createQuery();
+            query.outFields = ["里名", "averagegro"];
+            
+            populationvillageLayer.queryFeatures(query).then(result => {
+              currentData = result.features.map(feature => ({
+                name: feature.attributes["里名"],
+                growthRate: feature.attributes["averagegro"]
+              }));
+              
+              populateDistrictSelect(currentData);
+              
+              document.getElementById("sortButton").addEventListener("click", sortDistricts);
+              document.getElementById("districtSelect").addEventListener("change", (e) => {
+                zoomToDistrict(e.target.value, populationvillageLayer, view);
+              });
+            });
+          }
+
+          hydrantLayer = webscene.layers.find(layer => layer.title === "烏日_消防栓");
+          if (hydrantLayer) {
+            hydrantLayer.outFields = ["*"];
+          }
+
+        });
+
+        view.ui.add([queryDiv], "bottom-left");
+        view.ui.add([resultDiv], "top-right");
+
+        function runQuery() {
+          if (!sketchGeometry) return;
+
+          const bufferGeometry = bufferSize > 0
+            ? geometryEngine.geodesicBuffer(sketchGeometry, bufferSize, "meters")
+            : sketchGeometry;
+
+          // Clear previous results first
+          document.getElementById("populationDensity").innerHTML = "";
+          resultDiv.style.display = "block";
+          updateBufferGraphic(bufferSize);
+
+          // Run all queries in parallel
+          Promise.all([
+            queryPopulationDensity(bufferGeometry),
+            queryTransportation(bufferGeometry),
+            updateSceneLayer(),
+            queryStatistics(),
+            querySchoolsAndAccidents(bufferGeometry),
+            checkFireHydrants(bufferGeometry)
+          ])
+          .then(([populationData, transportData, _, landUseData, schoolAccidentData, hasHydrant]) => {
+            // Calculate and display evaluation results
+            const evaluationStats = {
+              populationDensity: populationData?.density || 0,
+              stopDensity: transportData?.stopDensity || 0,
+              schoolCount: schoolAccidentData?.schoolCount || 0,
+              accidentCount: schoolAccidentData?.accidentCount || 0,
+              hasHydrant: hasHydrant,
+              landUseType: landUseData?.landUseTypes || {},
+              existingStations: transportData?.bikeCount || 0
+            };
+
+            const evaluationResults = calculateStationScore(evaluationStats);
+            displayEvaluationResults(evaluationResults);
+          })
+          .catch(error => {
+            console.error("Query error:", error);
+            // Show error message to user
+            const evaluationDiv = document.getElementById("evaluationResults");
+            if (evaluationDiv) {
+              evaluationDiv.innerHTML = `
+                <div class="evaluation-summary">
+                  <div class="recommendation-low">查詢發生錯誤，請重試</div>
+                </div>
+              `;
+            }
+          });
+        }
+
+
+        function queryPopulationDensity(bufferGeometry) {
+          if (!populationLayer) return Promise.resolve();
+
+          const query = populationLayer.createQuery();
+          query.geometry = bufferGeometry;
+          query.spatialRelationship = "intersects";
+          query.outStatistics = [{
+            statisticType: "sum",
+            onStatisticField: "P_CNT",
+            outStatisticFieldName: "totalPopulation"
+          }];
+
+          return populationLayer.queryFeatures(query).then((result) => {
+            const totalPopulation = result.features[0]?.attributes.totalPopulation || 0;
+            const bufferArea = geometryEngine.geodesicArea(bufferGeometry, "square-meters");
+            const populationDensity = bufferArea > 0 ? (totalPopulation / bufferArea) : 0;
+            const densityPerKm2 = populationDensity * 1000000; // 轉換為每平方公里
+            const category = classifyDensity(populationDensity);
+
+            const densityDiv = document.getElementById("populationDensity");
+            densityDiv.innerHTML = `
+              <div class="population-section">
+                <div class="analysis-item">
+                  <span class="label">總人口數</span>
+                  <span class="value">${totalPopulation.toLocaleString()} 人</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">面積</span>
+                  <span class="value">${bufferArea.toFixed(2)} 平方公尺</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">密度</span>
+                  <span class="value">${densityPerKm2.toFixed(2)} 人/平方公里</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">分級</span>
+                  <span class="value">${densityCategories[category - 1]}</span>
+                </div>
+              </div>
+            `;
+
+            updateDensityChart(category);
+            
+            return {
+              density: populationDensity,
+              totalPopulation: totalPopulation,
+              area: bufferArea
+            };
+          });
+        }
+
+
+        function queryTransportation(bufferGeometry) {
+          if (!busLayer || !bikeLayer || !intercitybusLayer) return Promise.resolve();
+
+          const bufferArea = geometryEngine.geodesicArea(bufferGeometry, "square-kilometers");
+          
+          const queries = [busLayer, bikeLayer, intercitybusLayer].map(layer => {
+            const query = layer.createQuery();
+            query.geometry = bufferGeometry;
+            query.spatialRelationship = "intersects";
+            return layer.queryFeatureCount(query);
+          });
+
+          return Promise.all(queries).then(([busCount, bikeCount, intercitybusCount]) => {
+            const totalStopCount = busCount + intercitybusCount;
+            const stopDensity = bufferArea > 0 ? (totalStopCount / bufferArea) : 0;
+            const stopDensityCategory = classifyStopDensity(stopDensity);
+
+            // 更新計數
+            document.getElementById("busCount").innerHTML = busCount;
+            document.getElementById("bikeCount").innerHTML = bikeCount;
+            document.getElementById("intercitybusCount").innerHTML = intercitybusCount;
+
+            // 將運輸相關資訊添加到大眾運輸分析區域
+            const transportAnalysis = `
+              <div class="transport-section">
+                <div class="analysis-item">
+                  <span class="label">總站牌數</span>
+                  <span class="value">${totalStopCount} 個</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">面積</span>
+                  <span class="value">${bufferArea.toFixed(2)} 平方公里</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">站牌數密度</span>
+                  <span class="value">${stopDensity.toFixed(2)} 站/平方公里</span>
+                </div>
+                <div class="analysis-item">
+                  <span class="label">分級</span>
+                  <span class="value">${stopDensityCategories[stopDensityCategory - 1]}</span>
+                </div>
+              </div>
+            `;
+
+            // 在stopDensityChart之前插入運輸分析資訊
+            const stopDensityElement = document.getElementById("stopDensityChart");
+            if (stopDensityElement) {
+              // 先檢查是否已存在transport-section，如果存在則移除
+              const existingSection = document.querySelector('.transport-section');
+              if (existingSection) {
+                existingSection.remove();
+              }
+              // 插入新的分析資訊
+              stopDensityElement.insertAdjacentHTML('beforebegin', transportAnalysis);
+            }
+
+            updateStopDensityChart(stopDensityCategory);
+            return {
+              busCount: busCount,
+              bikeCount: bikeCount,
+              intercitybusCount: intercitybusCount,
+              stopDensity: stopDensity,
+              totalStopCount: totalStopCount,
+              area: bufferArea
+            };
+          });
+        }
+
+        function querySchoolsAndAccidents(bufferGeometry) {
+          if (!schoolLayer || !accidentLayer) return Promise.resolve();
+
+          const schoolQuery = schoolLayer.createQuery();
+          const accidentQuery = accidentLayer.createQuery();
+          
+          schoolQuery.geometry = bufferGeometry;
+          accidentQuery.geometry = bufferGeometry;
+          schoolQuery.spatialRelationship = "intersects";
+          accidentQuery.spatialRelationship = "intersects";
+
+          return Promise.all([
+            schoolLayer.queryFeatureCount(schoolQuery),
+            accidentLayer.queryFeatureCount(accidentQuery)
+          ]).then(([schoolCount, accidentCount]) => {
+            // Update the assessment section
+            const schoolStatus = schoolCount > 0 ? '有' : '無';
+            const accidentStatus = accidentCount > 0 ? '有' : '無';
+            
+            document.getElementById("schoolCount").innerHTML = 
+              `${schoolStatus} (${schoolCount}所)`;
+            
+            const accidentElement = document.getElementById("accidentCount");
+            accidentElement.innerHTML = `${accidentStatus} (${accidentCount}處)`;
+            
+            // Add highlight class if there are accidents
+            if (accidentCount > 0) {
+              accidentElement.parentElement.classList.add('has-accidents');
+            } else {
+              accidentElement.parentElement.classList.remove('has-accidents');
+            }
+            return {
+              schoolCount: schoolCount,
+              accidentCount: accidentCount
+            };
+          });
+        }
+
+        //消防栓
+        function checkFireHydrants(geometry) {
+          if (!hydrantLayer || !geometry) return Promise.resolve(false);
+
+          // 根據幾何類型獲取中心點
+          let centerPoint;
+          
+          switch(geometry.type) {
+            case "point":
+              centerPoint = geometry;
+              break;
+            case "polyline":
+              // 對於線條，取其中點
+              const pathCount = geometry.paths[0].length;
+              const midIndex = Math.floor(pathCount / 2);
+              centerPoint = {
+                type: "point",
+                x: geometry.paths[0][midIndex][0],
+                y: geometry.paths[0][midIndex][1],
+                spatialReference: geometry.spatialReference
+              };
+              break;
+            case "polygon":
+              // 使用 geodesicCentroid 而不是 centroid
+              centerPoint = {
+                type: "point",
+                x: (geometry.extent.xmin + geometry.extent.xmax) / 2,
+                y: (geometry.extent.ymin + geometry.extent.ymax) / 2,
+                spatialReference: geometry.spatialReference
+              };
+              break;
+            default:
+              return Promise.resolve(false);
+          }
+
+          // 建立以中心點為基準的5公尺緩衝區
+          const hydrantBuffer = geometryEngine.geodesicBuffer(centerPoint, 5, "meters");
+          
+          const query = hydrantLayer.createQuery();
+          query.geometry = hydrantBuffer;
+          query.spatialRelationship = "intersects";
+
+          return hydrantLayer.queryFeatureCount(query).then(count => {
+            const hasHydrant = count > 0;
+            
+            // 更新評估結果顯示
+            const assessmentDiv = document.getElementById("assessmentAnalysis");
+            
+            // 檢查是否已存在消防栓資訊
+            let hydrantItem = assessmentDiv.querySelector('.hydrant-item');
+            if (!hydrantItem) {
+              // 如果不存在，創建新的元素
+              const newHydrantItem = document.createElement('div');
+              newHydrantItem.className = 'assessment-item hydrant-item';
+              newHydrantItem.innerHTML = `
+                <div class="assessment-label">消防救災</div>
+                <div class="assessment-value" id="hydrantStatus">
+                  ${hasHydrant ? '<span style="color: #dc3545;">影響消防救災</span>' : '無影響'}
+                </div>
+              `;
+              
+              // 將新元素加入到評估區域中
+              const assessmentGrid = assessmentDiv.querySelector('.assessment-grid');
+              if (assessmentGrid) {
+                assessmentGrid.appendChild(newHydrantItem);
+              }
+            } else {
+              // 如果已存在，更新內容
+              const statusElement = hydrantItem.querySelector('#hydrantStatus');
+              if (statusElement) {
+                statusElement.innerHTML = hasHydrant ? 
+                  '<span style="color: #dc3545;">影響消防救災</span>' : '無影響';
+              }
+            }
+
+            return hasHydrant;
+          });
+        }
+
+        // use SketchViewModel to draw polygons that are used as a query
+        let sketchGeometry = null;
+        const sketchViewModel = new SketchViewModel({
+          layer: sketchLayer,
+          defaultUpdateOptions: {
+            tool: "reshape",
+            toggleToolOnClick: false
+          },
+          view: view,
+          defaultCreateOptions: { hasZ: false }
+        });
+
+        sketchViewModel.on("create", (event) => {
+          if (event.state === "complete") {
+            sketchGeometry = event.graphic.geometry;
+            runQuery();
+          }
+        });
+
+        sketchViewModel.on("update", (event) => {
+          if (event.state === "complete") {
+            sketchGeometry = event.graphics[0].geometry;
+            runQuery();
+          }
+        });
+        // draw geometry buttons - use the selected geometry to sktech
+        const pointBtn = document.getElementById("point-geometry-button");
+        const lineBtn = document.getElementById("line-geometry-button");
+        const polygonBtn = document.getElementById("polygon-geometry-button");
+        pointBtn.addEventListener("click", geometryButtonsClickHandler);
+        lineBtn.addEventListener("click", geometryButtonsClickHandler);
+        polygonBtn.addEventListener("click", geometryButtonsClickHandler);
+        function geometryButtonsClickHandler(event) {
+          const geometryType = event.target.value;
+          clearGeometry();
+          sketchViewModel.create(geometryType);
+        }
+
+        const bufferNumSlider = new Slider({
+          container: "bufferNum",
+          min: 0,
+          max: 500,
+          steps: 1,
+          visibleElements: {
+            labels: true
+          },
+          precision: 0,
+          labelFormatFunction: (value, type) => {
+            return `${value.toString()}m`;
+          },
+          values: [0]
+        });
+        // get user entered values for buffer
+        bufferNumSlider.on(["thumb-change", "thumb-drag"], bufferVariablesChanged);
+        function bufferVariablesChanged(event) {
+          bufferSize = event.value;
+          runQuery();
+        }
+        // Clear the geometry and set the default renderer
+        const clearGeometryBtn = document.getElementById("clearGeometry");
+        clearGeometryBtn.addEventListener("click", clearGeometry);
+        
+        // Modify the clearGeometry function
+        function clearGeometry() {
+          sketchGeometry = null;
+          sketchViewModel.cancel();
+          sketchLayer.removeAll();
+          bufferLayer.removeAll();
+          clearHighlighting();
+          
+          // Reset all charts
+          updateDensityChart(0);
+          updateStopDensityChart(0);
+          if (landuseChart) {
+            landuseChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0];
+            landuseChart.update();
+          }
+          
+          // Reset all counters and displays
+          document.getElementById("populationDensity").innerHTML = "";
+          document.getElementById("busCount").innerHTML = "0";
+          document.getElementById("bikeCount").innerHTML = "0";
+          document.getElementById("intercitybusCount").innerHTML = "0";
+          document.getElementById("count").innerHTML = "0";
+          document.getElementById("schoolCount").innerHTML = "0";
+          document.getElementById("accidentCount").innerHTML = "0";
+          
+          // Clear evaluation results
+          const evaluationDiv = document.getElementById("evaluationResults");
+          if (evaluationDiv) {
+            evaluationDiv.innerHTML = "";
+          }
+          
+          // Reset the buffer slider
+          if (bufferNumSlider) {
+            bufferNumSlider.values = [0];
+          }
+          
+          // Hide results panel
+          resultDiv.style.display = "none";
+          
+          // Clear any stored query state
+          if (sceneLayerView) {
+            sceneLayerView.filter = null;
+          }
+        }
+
+        // Add event listener cleanup on sketch completion
+        sketchViewModel.on("create", function(event) {
+          if (event.state === "complete") {
+            sketchGeometry = event.graphic.geometry;
+            runQuery();
+          }
+        });
+
+        // set the geometry query on the visible SceneLayerView
+        const debouncedRunQuery = promiseUtils.debounce(() => {
+          if (!sketchGeometry) {
+            return;
+          }
+
+          resultDiv.style.display = "block";
+          updateBufferGraphic(bufferSize);
+          return promiseUtils.eachAlways([queryStatistics(), updateSceneLayer()]);
+        });
+
+        // Set the renderer with objectIds
+        let highlightHandle = null;
+        function clearHighlighting() {
+          if (highlightHandle) {
+            highlightHandle.remove();
+            highlightHandle = null;
+          }
+        }
+
+        function highlightBuildings(objectIds) {
+          // Remove any previous highlighting
+          clearHighlighting();
+          const objectIdField = sceneLayer.objectIdField;
+          document.getElementById("count").innerHTML = objectIds.length;
+
+          highlightHandle = sceneLayerView.highlight(objectIds);
+        }
+
+        // update the graphic with buffer
+        function updateBufferGraphic(buffer) {
+          // add a polygon graphic for the buffer
+          if (buffer > 0) {
+            const bufferGeometry = geometryEngine.geodesicBuffer(sketchGeometry, buffer, "meters");
+            if (bufferLayer.graphics.length === 0) {
+              bufferLayer.add(
+                new Graphic({
+                  geometry: bufferGeometry,
+                  symbol: sketchViewModel.polygonSymbol
+                })
+              );
+            } else {
+              bufferLayer.graphics.getItemAt(0).geometry = bufferGeometry;
+            }
+          } else {
+            bufferLayer.removeAll();
+          }
+        }
+
+        function updateSceneLayer() {
+          const query = sceneLayerView.createQuery();
+          query.geometry = sketchGeometry;
+          query.distance = bufferSize;
+          return sceneLayerView.queryObjectIds(query).then(highlightBuildings);
+        }
+
+        let landuseChart = null;
+
+        function queryStatistics() {
+          const query = sceneLayerView.createQuery();
+          query.geometry = sketchGeometry;
+          query.distance = bufferSize;
+          query.outStatistics = [
+            {
+              onStatisticField: "CASE WHEN 分區代 IN ('A08000', 'AA', 'AB', 'AF') THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區＿農業區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 IN ('A01130', 'A01110', 'A01120', 'A01140') THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_住宅區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 = 'AC' THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_鄉村區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 IN ('A02120', 'A02000') THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_商業區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 IN ('AD', 'A03220') THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_工業區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 = 'AF' THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_山坡保育區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: "CASE WHEN 分區代 = 'B0710' THEN 1 ELSE 0 END",
+              outStatisticFieldName: "使用分區_產業專用區",
+              statisticType: "sum"
+            },
+            {
+              onStatisticField: `CASE WHEN 分區代 NOT IN ('A08000', 'AA', 'AB', 'AF', 'A01130', 'A01110', 'A01120', 'A01140', 
+                'AC', 'A02120', 'A02000', 'AD', 'A03220', 'AF', 'B0710') THEN 1 ELSE 0 END`,
+              outStatisticFieldName: "使用分區_其他",
+              statisticType: "sum"
+            }
+          ];
+
+          return sceneLayerView.queryFeatures(query)
+          .then((result) => {
+            const allStats = result.features[0].attributes;
+            const stats = [
+              allStats.使用分區_農業區,
+              allStats.使用分區_住宅區,
+              allStats.使用分區_鄉村區,
+              allStats.使用分區_工業區,
+              allStats.使用分區_商業區,
+              allStats.使用分區_產業專用區,
+              allStats.使用分區_山坡保育區,
+              allStats.使用分區_其他
+            ];
+            
+            updateChart(landuseChart, stats);
+            
+            // 返回土地使用類型數據
+            return {
+              landUseTypes: {
+                '農業區': allStats.使用分區_農業區 || 0,
+                '住宅區': allStats.使用分區_住宅區 || 0,
+                '鄉村區': allStats.使用分區_鄉村區 || 0,
+                '工業區': allStats.使用分區_工業區 || 0,
+                '商業區': allStats.使用分區_商業區 || 0,
+                '產業專用區': allStats.使用分區_產業專用區 || 0,
+                '山坡保育區': allStats.使用分區_山坡保育區 || 0,
+                '其他': allStats.使用分區_其他 || 0
+              }
+            };
+          })
+          .catch(error => {
+            console.error(error);
+            return { landUseTypes: {} };
+          });
+        }
+
+        function updateChart(chart, dataValues) {
+          chart.data.datasets[0].data = dataValues;
+          chart.update();
+        }
+
+        function createlanduseChart() {
+          const landuseCanvas = document.getElementById("landuse-chart");
+          landuseChart = new Chart(landuseCanvas.getContext("2d"), {
+            type: "doughnut",
+            data: {
+              labels: ["農業區", "住宅區", "鄉村區", "工業區", "商業區", "產業專用區", "山坡保育區", "其他"],
+              datasets: [
+                {
+                  backgroundColor: ["#86a69e", "#f28583", "#f5cac4", "#b8bede", "#f5bc5f", "#dae3de", "#858a45", "#fff3b0"],
+                  borderWidth: 0,
+                  data: [0, 0, 0, 0, 0, 0, 0, 0]
+                }
+              ]
+            },
+            options: {
+              responsive: false,
+              cutoutPercentage: 35,
+              legend: {
+                position: "bottom"
+              },
+              title: {
+                display: true,
+                text: "landuse chart"
+              }
+            }
+          });
+        }
+        function clearCharts() {
+          updateChart(landuseChart, [0, 0, 0, 0, 0, 0, 0, 0]);
+          document.getElementById("count").innerHTML = 0;
+        }
+
+        createlanduseChart();
+
+        // 評估函數
+        function calculateStationScore(stats) {
+          console.log("Evaluation stats:", stats); // 加入除錯用訊息
+          
+          // 1. 人口密度 (25%)
+          const populationDensityScore = calcPopulationDensityScore(stats.populationDensity);
+          
+          // 2. 公車站密度 (20%)
+          const busStopDensityScore = calcBusStopDensityScore(stats.stopDensity);
+          
+          // 3. 學校數量 (15%)
+          const schoolScore = Math.min(stats.schoolCount * 25, 100);
+          
+          // 4. 易肇事路口 (15%)
+          const accidentScore = Math.max(100 - stats.accidentCount * 20, 0);
+          
+          // 5. 消防救災影響 (15%)
+          const fireRescueScore = stats.hasHydrant ? 0 : 100;
+          
+          // 6. 土地利用 (10%)
+          const landUseScore = calcLandUseScore(stats.landUseType);
+          
+          // 7. 站點分布 (10%)
+          const distributionScore = Math.max(100 - stats.existingStations * 25, 0);
+
+          // 輸出各項得分，方便除錯
+          console.log({
+            populationDensityScore,
+            busStopDensityScore,
+            schoolScore,
+            accidentScore,
+            fireRescueScore,
+            landUseScore,
+            distributionScore
+          });
+
+          // 計算加權總分
+          const totalScore = (
+            populationDensityScore * 0.25 +
+            busStopDensityScore * 0.20 +
+            schoolScore * 0.15 +
+            accidentScore * 0.15 +
+            fireRescueScore * 0.15 +
+            landUseScore * 0.10 +
+            distributionScore * 0.10
+          );
+
+          return {
+            totalScore,
+            details: {
+              populationDensity: { score: populationDensityScore, weight: 25 },
+              busStopDensity: { score: busStopDensityScore, weight: 20 },
+              school: { score: schoolScore, weight: 15 },
+              accident: { score: accidentScore, weight: 15 },
+              fireRescue: { score: fireRescueScore, weight: 15 },
+              landUse: { score: landUseScore, weight: 10 },
+              distribution: { score: distributionScore, weight: 10 }
+            }
+          };
+        }
+
+        // Modified evaluation functions to properly reflect current data
+        function calcPopulationDensityScore(density) {
+          const densityPerKm2 = density * 1000000;
+          console.log("人口密度(人/平方公里):", densityPerKm2);
+
+          if (densityPerKm2 <= 1000) return 20;      // 低密度區域
+          if (densityPerKm2 <= 5000) return 40;      // 郊區密度
+          if (densityPerKm2 <= 10000) return 60;     // 一般住宅區密度
+          if (densityPerKm2 <= 20000) return 80;     // 較高密度住宅區
+          return 100;                                // 高密度商業或住宅區
+        }
+
+
+
+        // 公車站密度評分
+        function calcBusStopDensityScore(density) {
+          console.log("Bus stop density:", density); // 加入除錯用訊息
+          if (density <= 16) return 20;
+          if (density <= 32) return 40;
+          if (density <= 64) return 60;
+          if (density <= 128) return 80;
+          return 100;
+        }
+
+        // Modified land use score calculation
+        function calcLandUseScore(landUseTypes) {
+          const scores = {
+            '住宅區': 100,
+            '商業區': 100,
+            '工業區': 60,
+            '鄉村區': 60,
+            '產業專用區': 60,
+            '山坡保育區': 40,
+            '農業區': 20,
+            '其他': 20
+          };
+
+          let totalScore = 0;
+          let totalCount = 0;
+
+          for (const type in landUseTypes) {
+            if (landUseTypes.hasOwnProperty(type)) {
+              const count = parseInt(landUseTypes[type]) || 0;
+              if (count > 0) {
+                totalScore += (scores[type] || 20) * count;
+                totalCount += count;
+              }
+            }
+          }
+
+          // Ensure we don't divide by zero
+          return totalCount > 0 ? totalScore / totalCount : 20;
+        }
+
+        // 評估結果顯示函數
+        function displayEvaluationResults(results) {
+          // 找到評估結果容器
+          const evaluationDiv = document.getElementById("evaluationResults");
+          if (!evaluationDiv) return;
+
+          // 更新評估結果內容
+          evaluationDiv.innerHTML = `
+            <div class="evaluation-summary">
+              <div class="total-score">總評分: ${results.totalScore.toFixed(1)}</div>
+              <div class="recommendation">
+                ${getRecommendation(results.totalScore)}
+              </div>
+            </div>
+            <div class="score-details">
+              ${Object.entries(results.details).map(([key, value]) => `
+                <div class="score-item">
+                  <div class="score-label">${getScoreLabel(key)} (${value.weight}%)</div>
+                  <div class="score-value">${value.score.toFixed(1)}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+        // 取得評估建議
+        function getRecommendation(score) {
+          if (score >= 80) {
+            return '<div class="recommendation-high">建議優先建設新站點</div>';
+          } else if (score >= 60) {
+            return '<div class="recommendation-medium">可以進一步評估</div>';
+          } else {
+            return '<div class="recommendation-low">建議不宜建設新站點</div>';
+          }
+        }
+
+        // 評分項目標籤對照
+        function getScoreLabel(key) {
+          const labels = {
+            populationDensity: '人口密度',
+            busStopDensity: '公車站密度',
+            school: '學校數量',
+            accident: '易肇事路口',
+            fireRescue: '消防救災影響',
+            landUse: '土地利用',
+            distribution: '站點分布'
+          };
+          return labels[key] || key;
+        }        
+
+        // Tab Switching Functionality with Active Tab Color Change
+        const buttons = document.querySelectorAll(".tabButton");
+        const tabContents = document.querySelectorAll(".tabContent");
+
+        buttons.forEach(button => {
+          button.addEventListener("click", function() {
+            // Hide all tab contents
+            tabContents.forEach(tab => tab.style.display = "none");
+
+            // Determine which tab to display based on the button clicked
+            const targetTab = document.getElementById(
+              button.textContent === "底圖切換" ? "basemap-tab" : 
+              button.textContent === "圖層控制" ? "layerlist-tab" : 
+              button.textContent === "地圖圖例" ? "legend-tab" : 
+              button.textContent === "民眾建議" ? "suggestion-tab" : 
+              "basemap-tab"
+            );
+            targetTab.style.display = "block";
+
+            // Remove 'active' class from all buttons
+            buttons.forEach(btn => btn.classList.remove("active"));
+
+            // Add 'active' class to the clicked button
+            button.classList.add("active");
+          });
+        });
+
+        
+      });
+    </script>
+  </head>
+
+  <body>
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <a href="#" class="navbar-title">
+          <span class="title-icon">🚲</span>
+          台中市烏日區智慧YouBike選址系統
+        </a>
+      </div>
+      <div class="district-selector">
+        <select id="districtSelect" class="district-dropdown">
+          <option value="">選擇行政區 (依平均人口成長率)</option>
+        </select>
+        <button id="sortButton" class="sort-button" title="切換排序">
+          <span class="sort-icon">↕</span>
+        </button>
+      </div>
+    </nav>
+    <div id="mainContainer">
+      <div id="viewDiv"></div>
+      <button id="toggleStreetView" class="streetview-toggle">切換街景</button>
+      <div id="streetViewDiv">
+        <button class="close-streetview" onclick="toggleStreetView()">✕</button>
+      </div>
+      <div id="rightPanel">
+        <div id="tabContainer">
+          <button class="tabButton">地圖圖例</button>
+          <button class="tabButton">圖層控制</button>
+          <button class="tabButton">底圖切換</button>       
+          <button class="tabButton">民眾建議</button>
+        </div>
+        <div id="widgets-container">
+
+          <div id="legend-tab" class="tabContent" style="display: none;">
+            <div id="legend-container"></div>
+          </div>
+
+          <div id="layerlist-tab" class="tabContent" style="display: none;">
+            <div id="layerlist-container"></div>
+          </div>
+
+          <div id="basemap-tab" class="tabContent" style="display: block;">
+            <div id="basemap-gallery-container"></div>
+          </div>
+          
+          <div id="suggestion-tab" class="tabContent" style="display: none;">
+            <div id="suggestion-container" class="widget-container">
+              <div class="suggestion-content">
+                <div class="suggestion-tools">
+                  <button id="addPoint" class="action-button">
+                    <i class="esri-icon-map-pin"></i> 新增建議點 
+                  </button>
+                </div>
+                <div id="editorDiv"></div>  <!-- 這個 div 必須存在 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        </div>
+      </div>
+    </div>
+    <div id="queryDiv" class="esri-widget">
+      <!-- ArcGIS 功能控制 -->
+      <b>依幾何樣式查詢</b><br />
+      <br />選擇劃設樣式:
+      <div class="geometry-options">
+        <button
+          class="esri-widget--button esri-icon-map-pin geometry-button"
+          id="point-geometry-button"
+          value="point"
+          title="Query by point"
+        ></button>
+        <button
+          class="esri-widget--button esri-icon-polyline geometry-button"
+          id="line-geometry-button"
+          value="polyline"
+          title="Query by line"
+        ></button>
+        <button
+          class="esri-widget--button esri-icon-polygon geometry-button"
+          id="polygon-geometry-button"
+          value="polygon"
+          title="Query by polygon"
+        ></button>
+      </div>
+      <br />
+      <div class="tooltip">
+        <label for="bufferNum">選擇緩衝區距離:</label>
+        <div id="bufferNum"></div>
+      </div>
+      <br />
+      <button class="esri-button" id="clearGeometry" type="button">清除</button>
+    </div>
+
+    <div id="resultDiv" class="esri-widget">
+      <div class="result-title">查詢結果</div>
+      <div class="result-section">
+        <div class="results-container">
+          <!-- Population and Density Section -->
+          <div class="section-header">人口與密度分析</div>
+          <div id="populationDensity" class="analysis-section"></div>
+          <canvas id="densityChart" width="400" height="100"></canvas>
+          
+          <!-- Transportation Section -->
+          <div class="section-header">大眾運輸分析</div>
+          <div id="transportAnalysis" class="analysis-section"></div>
+          <canvas id="stopDensityChart" width="400" height="100"></canvas>
+          <div class="count">
+            <div class="count-grid">
+              <div class="count-item">
+                <div class="count-label">公車站數</div>
+                <div class="count-value"><span id="busCount">0</span></div>
+              </div>
+              <div class="count-item">
+                <div class="count-label">客運站數</div>
+                <div class="count-value"><span id="intercitybusCount">0</span></div>
+              </div>
+              <div class="count-item">
+                <div class="count-label">既有YouBike站數</div>
+                <div class="count-value"><span id="bikeCount">0</span></div>
+              </div>
+            </div>
+          </div>
+    
+          <!-- New Station Assessment Section -->
+          <div class="section-header">設站可行性評估</div>
+          <div id="assessmentAnalysis" class="analysis-section">
+            <div class="assessment-grid">
+              <div class="assessment-item">
+                <div class="assessment-label">學校</div>
+                <div class="assessment-value"><span id="schoolCount">0</span></div>
+              </div>
+              <div class="assessment-item">
+                <div class="assessment-label">易肇事路口</div>
+                <div class="assessment-value"><span id="accidentCount">0</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Land Use Section -->
+          <div class="section-header">土地使用分析</div>
+          <div class="count">
+            <div class="count-grid">
+              <div class="count-item">
+                <div class="count-label">建物數目</div>
+                <div class="count-value"><span id="count">0</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="charts">
+            <canvas id="landuse-chart" width="280" height="300"></canvas>
+          </div>
+          <!-- 新增評分結果容器 -->
+          <div class="section-header">綜合評估結果</div>
+          <div id="evaluationResults" class="analysis-section"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
